@@ -1,0 +1,5 @@
+{
+  "name": "VertiLine Editor",
+  "description": "A responsive vertical timeline editor with Markdown support, image embedding, and JSON import/export capabilities.",
+  "requestFramePermissions": []
+}
