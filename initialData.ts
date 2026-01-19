@@ -3,7 +3,7 @@ import { TimelineData } from './types';
 export const INITIAL_DATA: TimelineData = {
   "meta": {
     "appName": "VertiLine",
-    "version": "5.1",
+    "version": "5.2",
     "createdAt": "2023-10-27T00:00:00.000Z"
   },
   "events": [
@@ -171,10 +171,18 @@ export const INITIAL_DATA: TimelineData = {
           "id": "period-zhanguo",
           "date": "-000453-01-01",
           "title": "战国时期",
-          "content": "三家分晋，七雄并立。",
+          "content": "三家分晋，七雄并立。《资治通鉴》即以此时期开篇。",
           "images": [],
-          "tags": ["战国"],
+          "tags": ["战国", "资治通鉴"],
           "children": [
+            {
+              "id": "zztj-sanjiafenjin",
+              "date": "-000403-01-01",
+              "title": "三家分晋",
+              "content": "《资治通鉴》开篇第一事。周威烈王正式册封晋国大夫韩虔、赵籍、魏斯为诸侯，标志着礼乐制度的彻底崩坏，战国时代正式来临。",
+              "images": [],
+              "tags": ["资治通鉴", "开篇"]
+            },
             {
               "id": "idiom-weiweijiuzhao",
               "date": "-000354-01-01",
@@ -282,6 +290,14 @@ export const INITIAL_DATA: TimelineData = {
       "tags": ["乱世"],
       "children": [
         {
+          "id": "idiom-xiaohe-hanxin",
+          "date": "-000206-01-15",
+          "title": "萧何月下追韩信",
+          "content": "韩信不受重用出走，萧何连夜追回，并向刘邦极力推荐：“诸将易得耳，至如信者，国士无双。”",
+          "images": [],
+          "tags": ["资治通鉴", "国士无双"]
+        },
+        {
           "id": "idiom-pofuchenzhou",
           "date": "-000207-01-01",
           "title": "破釜沉舟",
@@ -345,7 +361,17 @@ export const INITIAL_DATA: TimelineData = {
           "title": "武帝北击匈奴",
           "content": "卫青、霍去病封狼居胥。",
           "images": [],
-          "tags": ["战争"]
+          "tags": ["战争"],
+          "children": [
+             {
+               "id": "zztj-suwu",
+               "date": "-000100-01-01",
+               "title": "苏武牧羊",
+               "content": "苏武出使匈奴被扣留，持汉节十九年不降，在北海边牧羊。体现了坚贞不屈的民族气节。",
+               "images": [],
+               "tags": ["资治通鉴", "气节"]
+             }
+          ]
         },
         {
           "id": "idiom-zaobitouguang",
@@ -432,6 +458,14 @@ export const INITIAL_DATA: TimelineData = {
                    "tags": ["成语", "诸葛亮"]
                 }
               ]
+             },
+             {
+               "id": "zztj-guamuxiangkan",
+               "date": "0219-01-01",
+               "title": "刮目相看",
+               "content": "孙权劝大将吕蒙多读书。后来鲁肃经过寻阳，与吕蒙交谈，大惊道：“卿今者才略，非复吴下阿蒙！”吕蒙答：“士别三日，即更刮目相待。”",
+               "images": [],
+               "tags": ["资治通鉴", "吴下阿蒙"]
              },
              {
                "id": "idiom-qibuchengshi",
@@ -557,6 +591,22 @@ export const INITIAL_DATA: TimelineData = {
       "tags": ["唐朝"],
       "children": [
         {
+          "id": "zztj-xuanwumen",
+          "date": "0626-07-02",
+          "title": "玄武门之变",
+          "content": "秦王李世民在长安城宫城玄武门发动政变，杀太子李建成、齐王李元吉，逼迫唐高祖李渊退位。",
+          "images": [],
+          "tags": ["资治通鉴", "政变"]
+        },
+        {
+          "id": "zztj-zhenguan",
+          "date": "0627-01-01",
+          "title": "贞观之治",
+          "content": "唐太宗李世民在位期间，虚心纳谏（如魏征），厉行节约，劝课农桑，出现了“路不拾遗，夜不闭户”的盛世局面。《资治通鉴》对此有详细记载。",
+          "images": [],
+          "tags": ["资治通鉴", "盛世"]
+        },
+        {
           "id": "idiom-qingjunruweng",
           "date": "0691-01-01",
           "title": "请君入瓮",
@@ -584,7 +634,7 @@ export const INITIAL_DATA: TimelineData = {
                "id": "idiom-koumifujian",
                "date": "0750-01-01",
                "title": "口蜜腹剑",
-               "content": "李林甫嘴甜心毒，阴险狡诈。",
+               "content": "李林甫嘴甜心毒，阴险狡诈。《资治通鉴》评价其：“口有蜜，腹有剑。”",
                "images": [],
                "tags": ["成语", "李林甫"]
              }

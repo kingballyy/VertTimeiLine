@@ -56,32 +56,36 @@ const TimelineNode: React.FC<{
     : [];
 
   return (
-    <div className="relative mb-6">
+    <div className="relative mb-4 md:mb-6">
       {/* Connector Line to Children */}
       {hasChildren && isExpanded && (
         <div 
-          className="absolute left-[19px] top-10 bottom-0 border-l-2 border-dashed border-slate-300"
-          style={{ left: '1.2rem' }} // Align with dot center
+          // Calculated to align with the center of the dot in the left column
+          // Mobile: w-6 (24px) -> center 12px -> 0.75rem approx left-[11px]
+          // Desktop: w-10 (40px) -> center 20px -> 1.25rem approx left-[19px]
+          className="absolute border-l-2 border-dashed border-slate-300 top-8 bottom-0 md:top-10 left-[11px] md:left-[19px]"
         ></div>
       )}
 
-      <div className="flex gap-4 group">
+      <div className="flex gap-2 md:gap-4 group">
         
         {/* Left Column: Marker & Toggler */}
-        <div className="flex flex-col items-center flex-shrink-0 w-10 pt-1 relative z-10">
+        <div className="flex flex-col items-center flex-shrink-0 w-6 md:w-10 pt-1 relative z-10">
            {/* The Dot */}
            <div 
-            className={`w-4 h-4 rounded-full border-2 shadow-sm transition-colors cursor-pointer flex items-center justify-center ${
-               hasChildren ? 'bg-white border-primary' : 'bg-primary border-white'
-            }`}
+            className={`
+              rounded-full border-2 shadow-sm transition-colors cursor-pointer flex items-center justify-center
+              w-3 h-3 md:w-4 md:h-4
+              ${hasChildren ? 'bg-white border-primary' : 'bg-primary border-white'}
+            `}
             onClick={(e) => {
               e.stopPropagation();
               if (hasChildren) toggleExpand(event.id);
             }}
           >
             {hasChildren && (
-              <div className="text-[10px] text-primary font-bold">
-                 {isExpanded ? <ChevronDown className="w-3 h-3"/> : <ChevronRight className="w-3 h-3 pl-px"/>}
+              <div className="text-[8px] md:text-[10px] text-primary font-bold flex items-center justify-center">
+                 {isExpanded ? <ChevronDown className="w-2 h-2 md:w-3 md:h-3"/> : <ChevronRight className="w-2 h-2 md:w-3 md:h-3 pl-px"/>}
               </div>
             )}
           </div>
@@ -90,11 +94,11 @@ const TimelineNode: React.FC<{
         {/* Right Column: Card Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 mb-1">
-             <span className="text-sm font-mono font-bold text-primary bg-blue-50 px-2 py-0.5 rounded">
+             <span className="text-xs md:text-sm font-mono font-bold text-primary bg-blue-50 px-1.5 py-0.5 md:px-2 rounded">
                {formatDate(event.date)}
              </span>
              {level > 0 && (
-                <span className="text-xs text-slate-400 font-medium border border-slate-200 px-1 rounded">
+                <span className="text-[10px] md:text-xs text-slate-400 font-medium border border-slate-200 px-1 rounded">
                   子事件
                 </span>
              )}
@@ -103,29 +107,29 @@ const TimelineNode: React.FC<{
           <div 
             onClick={() => onEdit(event)}
             className={`
-              relative bg-white rounded-lg border border-slate-200 p-4 shadow-sm 
+              relative bg-white rounded-lg border border-slate-200 p-3 md:p-4 shadow-sm 
               hover:shadow-md hover:border-blue-300 transition-all cursor-pointer
               group-hover:ring-1 ring-primary/10
             `}
           >
             <div className="flex justify-between items-start">
-              <h3 className="text-lg font-bold text-slate-800 mb-2 truncate pr-16">{event.title}</h3>
+              <h3 className="text-base md:text-lg font-bold text-slate-800 mb-1 md:mb-2 truncate pr-16">{event.title}</h3>
               
               {/* Action Buttons (Visible on Hover) */}
-              <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm rounded-lg p-1">
+              <div className="absolute top-2 right-2 md:top-3 md:right-3 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm rounded-lg p-1">
                 <button 
                   onClick={(e) => { e.stopPropagation(); onAddChild(event.id); }}
-                  className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded"
+                  className="p-1 md:p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded"
                   title="添加子事件"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onEdit(event); }}
-                  className="p-1.5 text-slate-400 hover:text-primary hover:bg-blue-50 rounded"
+                  className="p-1 md:p-1.5 text-slate-400 hover:text-primary hover:bg-blue-50 rounded"
                   title="编辑"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 </button>
                 <button 
                   onClick={(e) => {
@@ -134,20 +138,20 @@ const TimelineNode: React.FC<{
                       onDelete(event.id);
                     }
                   }}
-                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded"
+                  className="p-1 md:p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded"
                   title="删除"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 </button>
               </div>
             </div>
 
             {/* Tags */}
             {event.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex flex-wrap gap-1.5 md:gap-2 mb-2 md:mb-3">
                 {event.tags.map(tag => (
-                  <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">
-                    <Tag className="w-3 h-3 mr-1 opacity-50" />
+                  <span key={tag} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium bg-slate-100 text-slate-500">
+                    <Tag className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1 opacity-50" />
                     {tag}
                   </span>
                 ))}
@@ -155,7 +159,7 @@ const TimelineNode: React.FC<{
             )}
 
             {/* Markdown Content */}
-            <div className="prose prose-sm prose-slate max-w-none text-slate-600 line-clamp-3 mb-2">
+            <div className="prose prose-sm prose-slate max-w-none text-slate-600 line-clamp-3 mb-2 text-xs md:text-sm">
               <ReactMarkdown>{event.content}</ReactMarkdown>
             </div>
 
@@ -163,7 +167,7 @@ const TimelineNode: React.FC<{
             {event.images && event.images.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-1 mt-2">
                 {event.images.slice(0, 3).map((img, i) => (
-                  <img key={i} src={img} className="h-12 w-12 rounded object-cover border border-slate-100" alt="" />
+                  <img key={i} src={img} className="h-10 w-10 md:h-12 md:w-12 rounded object-cover border border-slate-100" alt="" />
                 ))}
               </div>
             )}
@@ -171,7 +175,7 @@ const TimelineNode: React.FC<{
           
           {/* Nested Children Rendering */}
           {hasChildren && isExpanded && (
-            <div className="mt-4 pl-2">
+            <div className="mt-2 md:mt-4 pl-0 md:pl-2">
               {sortedChildren.map(child => (
                 <TimelineNode 
                   key={child.id} 
@@ -223,11 +227,11 @@ const Timeline: React.FC<TimelineProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="relative max-w-4xl mx-auto px-4 py-8">
+    <div ref={containerRef} className="relative max-w-4xl mx-auto px-2 md:px-4 py-8">
       
       {/* Main Vertical Line (Fixed on Left) */}
       <div 
-        className="absolute left-9 top-0 bottom-0 w-8 cursor-pointer group"
+        className="absolute top-0 bottom-0 w-8 cursor-pointer group left-7 md:left-9"
         onClick={handleLineClick}
         title="点击线条添加根事件"
       >
