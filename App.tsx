@@ -4,16 +4,45 @@ import Header from './components/Header';
 import Timeline from './components/Timeline';
 import EventModal from './components/EventModal';
 import { TimelineData, TimelineEvent } from './types';
-import { EMPTY_DATA } from './constants';
+import { INITIAL_DATA } from './initialData';
 import { downloadJson } from './utils/fileHelpers';
 
 const App: React.FC = () => {
-  const [data, setData] = useState<TimelineData>(EMPTY_DATA);
+  // Helper: Get initial data with safe fallback
+  const getInitialData = (): TimelineData => {
+    const saved = localStorage.getItem('vertiline_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse local storage data", e);
+      }
+    }
+    return INITIAL_DATA;
+  };
+
+  // Helper: Set expanded state for root items based on provided data
+  const getRootExpandedIds = (events: TimelineEvent[]): Set<string> => {
+     const initial = new Set<string>();
+     events.forEach(e => {
+       if (e.children && e.children.length > 0) initial.add(e.id);
+     });
+     return initial;
+  };
+
+  // Initialize state directly with data
+  const [data, setData] = useState<TimelineData>(getInitialData);
+  
+  // Initialize expansion state based on the initial data
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const initialData = getInitialData();
+    return getRootExpandedIds(initialData.events);
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [createDate, setCreateDate] = useState<string | null>(null);
   const [targetParentId, setTargetParentId] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // Helper: Collect all IDs recursively that have children
   const getAllExpandableIds = (nodes: TimelineEvent[]): string[] => {
@@ -27,49 +56,8 @@ const App: React.FC = () => {
     return ids;
   };
 
-  // Helper: Set expanded state for root items
-  const getRootExpandedIds = (events: TimelineEvent[]): Set<string> => {
-     const initial = new Set<string>();
-     events.forEach(e => {
-       if (e.children && e.children.length > 0) initial.add(e.id);
-     });
-     return initial;
-  };
-
-  // Load Data on Mount
-  useEffect(() => {
-    const initData = async () => {
-      // 1. Try Local Storage
-      const saved = localStorage.getItem('vertiline_data');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setData(parsed);
-          setExpandedIds(getRootExpandedIds(parsed.events || []));
-          return;
-        } catch (e) {
-          console.error("Failed to load local storage data", e);
-        }
-      }
-
-      // 2. Fetch Default Data
-      try {
-        const response = await fetch('/DefaultData.json');
-        if (!response.ok) throw new Error('Network response was not ok');
-        const json = await response.json();
-        setData(json);
-        setExpandedIds(getRootExpandedIds(json.events || []));
-      } catch (error) {
-        console.error("Failed to load default data", error);
-      }
-    };
-
-    initData();
-  }, []);
-
   // Save to localStorage whenever data changes
   useEffect(() => {
-    // Only save if we have data (avoid overwriting with empty state on initial load race condition)
     if (data.events.length > 0) {
        localStorage.setItem('vertiline_data', JSON.stringify(data));
     }
