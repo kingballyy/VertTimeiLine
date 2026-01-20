@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { TimelineEvent } from '../types';
-import { Edit2, Tag, Trash2, ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { Edit2, Tag, Trash2, ChevronDown, ChevronRight, Plus, Circle } from 'lucide-react';
 
 interface TimelineProps {
   events: TimelineEvent[];
@@ -25,111 +25,139 @@ const formatDate = (dateString: string) => {
     const day = parseInt(dayStr, 10);
 
     const prefix = isBC ? '前' : '';
-    
-    // Heuristic: If month is 1 and day is 1, treat as Year precision only
     if (month === 1 && day === 1) {
       return `${prefix}${year}年`;
     }
-    
     return `${prefix}${year}年${month}月${day}日`;
   } catch (e) {
     return dateString;
   }
 };
 
-const TimelineNode: React.FC<{
+interface TimelineNodeProps {
   event: TimelineEvent;
   level: number;
+  isLast: boolean;
   expandedIds: Set<string>;
   toggleExpand: (id: string) => void;
   onEdit: (event: TimelineEvent) => void;
   onDelete: (id: string) => void;
   onAddChild: (id: string) => void;
-}> = ({ event, level, expandedIds, toggleExpand, onEdit, onDelete, onAddChild }) => {
+}
+
+const TimelineNode: React.FC<TimelineNodeProps> = ({ 
+  event, 
+  level, 
+  isLast,
+  expandedIds, 
+  toggleExpand, 
+  onEdit, 
+  onDelete, 
+  onAddChild 
+}) => {
   
   const hasChildren = event.children && event.children.length > 0;
   const isExpanded = expandedIds.has(event.id);
+  const isRoot = level === 0;
   
-  // Sort children if they exist
+  // Sort children
   const sortedChildren = hasChildren 
     ? [...(event.children || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) 
     : [];
 
   return (
-    <div className="relative mb-4 md:mb-6">
-      {/* Connector Line to Children */}
-      {hasChildren && isExpanded && (
-        <div 
-          // Calculated to align with the center of the dot in the left column
-          // Mobile: w-6 (24px) -> center 12px -> 0.75rem approx left-[11px]
-          // Desktop: w-10 (40px) -> center 20px -> 1.25rem approx left-[19px]
-          className="absolute border-l-2 border-dashed border-slate-300 top-8 bottom-0 md:top-10 left-[11px] md:left-[19px]"
-        ></div>
-      )}
-
-      <div className="flex gap-2 md:gap-4 group">
+    <div className="relative group">
+      <div className="flex gap-3 md:gap-4">
         
-        {/* Left Column: Marker & Toggler */}
-        <div className="flex flex-col items-center flex-shrink-0 w-6 md:w-10 pt-1 relative z-10">
-           {/* The Dot */}
+        {/* LEFT COLUMN: Marker & Line Spine */}
+        <div className={`flex flex-col items-center relative flex-shrink-0 ${isRoot ? 'w-8 md:w-10' : 'w-6'}`}>
+           
+           {/* Vertical Line Spine */}
+           {/* Note: Removed negative z-index to ensure visibility. Placed before marker in DOM. */}
            <div 
-            className={`
-              rounded-full border-2 shadow-sm transition-colors cursor-pointer flex items-center justify-center
-              w-3 h-3 md:w-4 md:h-4
-              ${hasChildren ? 'bg-white border-primary' : 'bg-primary border-white'}
-            `}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (hasChildren) toggleExpand(event.id);
-            }}
-          >
-            {hasChildren && (
-              <div className="text-[8px] md:text-[10px] text-primary font-bold flex items-center justify-center">
-                 {isExpanded ? <ChevronDown className="w-2 h-2 md:w-3 md:h-3"/> : <ChevronRight className="w-2 h-2 md:w-3 md:h-3 pl-px"/>}
-              </div>
-            )}
-          </div>
+             className={`
+               absolute top-0 bottom-0 left-1/2 -translate-x-1/2
+               ${isRoot ? 'w-1 bg-blue-400/50' : 'w-px border-l-2 border-dashed border-blue-300'}
+               ${isLast ? 'h-6' : ''} 
+               transition-colors duration-300
+             `}
+           ></div>
+
+           {/* MARKER */}
+           <div 
+             className={`
+               relative z-10 flex items-center justify-center rounded-full transition-all cursor-pointer box-border
+               ${isRoot 
+                 ? 'w-8 h-8 md:w-10 md:h-10 bg-primary text-white shadow-md border-4 border-white mt-1 ring-2 ring-blue-100' 
+                 : 'w-4 h-4 bg-white border-2 border-blue-400 mt-2 hover:border-primary hover:scale-125'}
+               ${hasChildren ? 'hover:ring-4 ring-primary/20' : ''}
+             `}
+             onClick={(e) => {
+               if (hasChildren) {
+                 e.stopPropagation();
+                 toggleExpand(event.id);
+               }
+             }}
+           >
+             {hasChildren ? (
+                // Expand/Collapse Icon
+                isRoot 
+                  ? (isExpanded ? <ChevronDown size={20} className="stroke-[3]" /> : <ChevronRight size={20} className="stroke-[3]" />)
+                  : (isExpanded ? <ChevronDown size={10} className="text-primary stroke-[3]"/> : <ChevronRight size={10} className="text-primary stroke-[3]"/>)
+             ) : (
+                // Simple Dot
+                isRoot 
+                  ? <Circle size={12} fill="currentColor" className="text-white"/> 
+                  : null
+             )}
+           </div>
         </div>
 
-        {/* Right Column: Card Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 mb-1">
-             <span className="text-xs md:text-sm font-mono font-bold text-primary bg-blue-50 px-1.5 py-0.5 md:px-2 rounded">
+        {/* RIGHT COLUMN: Content */}
+        <div className="flex-1 min-w-0 pb-10">
+          
+          {/* Header / Date */}
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`
+               font-mono font-bold rounded px-2 py-0.5
+               ${isRoot 
+                 ? 'text-sm bg-blue-50 text-primary border border-blue-200' 
+                 : 'text-xs bg-slate-100 text-slate-500'}
+             `}>
                {formatDate(event.date)}
-             </span>
-             {level > 0 && (
-                <span className="text-[10px] md:text-xs text-slate-400 font-medium border border-slate-200 px-1 rounded">
-                  子事件
-                </span>
-             )}
+            </span>
+            {hasChildren && (
+              <span className="text-[10px] bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full border border-blue-100 font-bold">
+                {event.children?.length}
+              </span>
+            )}
           </div>
 
+          {/* Card */}
           <div 
             onClick={() => onEdit(event)}
             className={`
-              relative bg-white rounded-lg border border-slate-200 p-3 md:p-4 shadow-sm 
-              hover:shadow-md hover:border-blue-300 transition-all cursor-pointer
-              group-hover:ring-1 ring-primary/10
+              relative rounded-xl border transition-all cursor-pointer overflow-hidden group/card
+              ${isRoot 
+                ? 'bg-white border-blue-100 shadow-sm hover:shadow-md hover:border-primary/40 p-4 md:p-5' 
+                : 'bg-slate-50/80 border-slate-200 hover:bg-white hover:border-blue-300 hover:shadow-sm p-3 md:p-4'}
             `}
           >
-            <div className="flex justify-between items-start">
-              <h3 className="text-base md:text-lg font-bold text-slate-800 mb-1 md:mb-2 truncate pr-16">{event.title}</h3>
-              
-              {/* Action Buttons (Visible on Hover) */}
-              <div className="absolute top-2 right-2 md:top-3 md:right-3 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm rounded-lg p-1">
+            {/* Action Buttons */}
+            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity bg-white/95 backdrop-blur rounded-lg p-1 shadow-sm border border-slate-200 z-20">
                 <button 
                   onClick={(e) => { e.stopPropagation(); onAddChild(event.id); }}
-                  className="p-1 md:p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded"
+                  className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded"
                   title="添加子事件"
                 >
-                  <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <Plus size={14} />
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onEdit(event); }}
-                  className="p-1 md:p-1.5 text-slate-400 hover:text-primary hover:bg-blue-50 rounded"
+                  className="p-1.5 text-slate-400 hover:text-primary hover:bg-blue-50 rounded"
                   title="编辑"
                 >
-                  <Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <Edit2 size={14} />
                 </button>
                 <button 
                   onClick={(e) => {
@@ -138,49 +166,53 @@ const TimelineNode: React.FC<{
                       onDelete(event.id);
                     }
                   }}
-                  className="p-1 md:p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded"
+                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded"
                   title="删除"
                 >
-                  <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <Trash2 size={14} />
                 </button>
-              </div>
             </div>
+
+            <h3 className={`font-bold text-slate-800 mb-2 truncate pr-16 ${isRoot ? 'text-lg' : 'text-base'}`}>
+              {event.title}
+            </h3>
 
             {/* Tags */}
             {event.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 md:gap-2 mb-2 md:mb-3">
+              <div className="flex flex-wrap gap-1.5 mb-3">
                 {event.tags.map(tag => (
-                  <span key={tag} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] md:text-xs font-medium bg-slate-100 text-slate-500">
-                    <Tag className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1 opacity-50" />
+                  <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
+                    <Tag size={10} className="mr-1 opacity-50" />
                     {tag}
                   </span>
                 ))}
               </div>
             )}
 
-            {/* Markdown Content */}
-            <div className="prose prose-sm prose-slate max-w-none text-slate-600 line-clamp-3 mb-2 text-xs md:text-sm">
+            {/* Content */}
+            <div className={`prose prose-sm prose-slate max-w-none text-slate-600 line-clamp-3 ${isRoot ? '' : 'text-xs'}`}>
               <ReactMarkdown>{event.content}</ReactMarkdown>
             </div>
 
-            {/* Images Preview */}
-            {event.images && event.images.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 mt-2">
+             {/* Images Preview */}
+             {event.images && event.images.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 mt-3">
                 {event.images.slice(0, 3).map((img, i) => (
-                  <img key={i} src={img} className="h-10 w-10 md:h-12 md:w-12 rounded object-cover border border-slate-100" alt="" />
+                  <img key={i} src={img} className="h-12 w-12 rounded-lg object-cover border border-slate-100" alt="" />
                 ))}
               </div>
             )}
           </div>
-          
-          {/* Nested Children Rendering */}
+
+          {/* Nested Children */}
           {hasChildren && isExpanded && (
-            <div className="mt-2 md:mt-4 pl-0 md:pl-2">
-              {sortedChildren.map(child => (
+            <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
+              {sortedChildren.map((child, idx) => (
                 <TimelineNode 
                   key={child.id} 
                   event={child} 
                   level={level + 1} 
+                  isLast={idx === sortedChildren.length - 1}
                   expandedIds={expandedIds}
                   toggleExpand={toggleExpand}
                   onEdit={onEdit}
@@ -212,8 +244,7 @@ const Timeline: React.FC<TimelineProps> = ({
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  const handleLineClick = (e: React.MouseEvent) => {
-    // Only allow clicking the main line to add root events
+  const handleGlobalAdd = () => {
     onInsertRequest(new Date().toISOString().split('T')[0]);
   };
 
@@ -227,36 +258,32 @@ const Timeline: React.FC<TimelineProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="relative max-w-4xl mx-auto px-2 md:px-4 py-8">
+    <div ref={containerRef} className="max-w-4xl mx-auto px-4 py-8 relative">
       
-      {/* Main Vertical Line (Fixed on Left) */}
+      {/* Global Line for Root (Optional visual guide, but relying on per-node lines is safer for recursion) */}
+      
+      {/* Global Add Button Area at Top */}
       <div 
-        className="absolute top-0 bottom-0 w-8 cursor-pointer group left-7 md:left-9"
-        onClick={handleLineClick}
-        title="点击线条添加根事件"
+        className="group flex items-center gap-4 mb-2 cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
+        onClick={handleGlobalAdd}
       >
-        <div className="absolute left-1/2 top-4 bottom-4 w-1 bg-slate-200 -translate-x-1/2 group-hover:bg-primary/40 group-hover:w-1.5 transition-all rounded-full"></div>
-        
-        {/* Add Button at Top */}
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-           <div className="bg-primary text-white rounded-full p-1 shadow">
-             <Plus className="w-3 h-3" />
-           </div>
-        </div>
-         {/* Add Button at Bottom */}
-         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-           <div className="bg-primary text-white rounded-full p-1 shadow">
-             <Plus className="w-3 h-3" />
-           </div>
-        </div>
+         <div className="w-8 md:w-10 flex justify-center">
+            <div className="w-8 h-8 rounded-full border-2 border-dashed border-blue-300 flex items-center justify-center text-blue-400 group-hover:border-primary group-hover:text-primary transition-colors bg-white">
+              <Plus size={16} />
+            </div>
+         </div>
+         <div className="text-sm font-medium text-blue-400 group-hover:text-primary">
+            添加起始事件
+         </div>
       </div>
 
-      <div className="relative z-10 pl-4">
-        {sortedEvents.map(event => (
+      <div className="relative">
+        {sortedEvents.map((event, index) => (
           <TimelineNode 
             key={event.id}
             event={event}
             level={0}
+            isLast={index === sortedEvents.length - 1}
             expandedIds={expandedIds}
             toggleExpand={onToggleExpand}
             onEdit={onEdit}
@@ -264,6 +291,21 @@ const Timeline: React.FC<TimelineProps> = ({
             onAddChild={onAddChild}
           />
         ))}
+      </div>
+      
+       {/* Global Add Button Area at Bottom */}
+       <div 
+        className="group flex items-center gap-4 mt-[-30px] cursor-pointer opacity-60 hover:opacity-100 transition-opacity z-10 relative"
+        onClick={handleGlobalAdd}
+      >
+         <div className="w-8 md:w-10 flex justify-center">
+            <div className="w-8 h-8 rounded-full border-2 border-dashed border-blue-300 flex items-center justify-center text-blue-400 group-hover:border-primary group-hover:text-primary transition-colors bg-white shadow-sm">
+              <Plus size={16} />
+            </div>
+         </div>
+         <div className="text-sm font-medium text-blue-400 group-hover:text-primary">
+            添加后续事件
+         </div>
       </div>
     </div>
   );
