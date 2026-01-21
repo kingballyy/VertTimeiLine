@@ -11,6 +11,7 @@ export interface TimelineEvent {
   content: string; // Markdown supported
   images: string[]; // Base64 strings
   tags: string[];
+  link?: string; // External URL
   children?: TimelineEvent[]; // Support nesting
 }
 
@@ -24,4 +25,5 @@ export interface EventFormData {
   title: string;
   content: string;
   tags: string; // Comma separated for input
+  link?: string;
 }

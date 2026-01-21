@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { TimelineEvent } from '../types';
-import { Edit2, Tag, Trash2, ChevronDown, ChevronRight, Plus, Circle } from 'lucide-react';
+import { Edit2, Tag, Trash2, ChevronDown, ChevronRight, Plus, Circle, ExternalLink } from 'lucide-react';
 
 interface TimelineProps {
   events: TimelineEvent[];
@@ -174,7 +174,21 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             </div>
 
             <h3 className={`font-bold text-slate-800 mb-2 truncate pr-16 ${isRoot ? 'text-lg' : 'text-base'}`}>
-              {event.title}
+              {event.link ? (
+                <a 
+                  href={event.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary hover:underline decoration-2 underline-offset-2 flex items-center gap-1 inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  title={event.link}
+                >
+                  {event.title}
+                  <ExternalLink size={14} className="opacity-50" />
+                </a>
+              ) : (
+                event.title
+              )}
             </h3>
 
             {/* Tags */}

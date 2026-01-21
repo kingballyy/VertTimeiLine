@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, Save, Eye, Edit3, Calendar } from 'lucide-react';
+import { X, Image as ImageIcon, Save, Eye, Edit3, Calendar, Link as LinkIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import ReactMarkdown from 'react-markdown';
 import { TimelineEvent, EventFormData } from '../types';
@@ -55,6 +55,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
         setValue('title', initialData.title);
         setValue('content', initialData.content);
         setValue('tags', initialData.tags.join(', '));
+        setValue('link', initialData.link || '');
         setImages(initialData.images);
       } else {
         // Create Mode
@@ -71,7 +72,8 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
         reset({
           title: '',
           content: '',
-          tags: ''
+          tags: '',
+          link: ''
         });
         setImages([]);
       }
@@ -111,7 +113,8 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
       title: data.title,
       content: data.content,
       images: images,
-      tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(t => t.length > 0) : []
+      tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(t => t.length > 0) : [],
+      link: data.link
     };
     onSave(newEvent);
     onClose();
@@ -213,6 +216,20 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 />
                 {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
+              </div>
+
+              {/* Link Input */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                   <LinkIcon className="w-4 h-4" />
+                   关联链接 (URL)
+                </label>
+                <input
+                  type="url"
+                  {...register('link')}
+                  placeholder="https://example.com/history/qin"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                />
               </div>
 
               {/* Tags Input */}
