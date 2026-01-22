@@ -3,7 +3,7 @@ import { TimelineData } from './types';
 export const INITIAL_DATA: TimelineData = {
   "meta": {
     "appName": "VertiLine",
-    "version": "5.3",
+    "version": "5.4",
     "createdAt": "2023-10-27T00:00:00.000Z"
   },
   "events": [
@@ -107,25 +107,17 @@ export const INITIAL_DATA: TimelineData = {
           "id": "period-chunqiu",
           "date": "-000770-01-01",
           "title": "春秋时期",
-          "content": "王室衰微，诸侯争霸。",
+          "content": "王室衰微，诸侯争霸。先后出现了齐桓公、宋襄公、晋文公、秦穆公、楚庄王等霸主。",
           "images": [],
-          "tags": ["春秋"],
+          "tags": ["春秋", "春秋五霸"],
           "children": [
-            {
-              "id": "idiom-yiguzuoqi",
-              "date": "-000684-01-01",
-              "title": "一鼓作气",
-              "content": "长勺之战，曹刿论战：夫战，勇气也。一鼓作气，再而衰，三而竭。",
-              "images": [],
-              "tags": ["成语", "鲁国"]
-            },
             {
               "id": "chunqiu-qi",
               "date": "-000685-01-01",
               "title": "齐桓公称霸",
-              "content": "### 霸主登场\n\n在礼崩乐坏的乱世，齐桓公任用**管仲**为相，提出**“尊王攘夷”**的战略：\n*   **尊王**：表面尊重周天子，获取政治授权。\n*   **攘夷**：打击蛮夷和不服诸侯，确立军事霸权。\n\n齐桓公通过“借壳上市”，成为春秋首霸。",
+              "content": "### 春秋首霸\n\n齐桓公任用**管仲**为相，进行改革，富国强兵。提出**“尊王攘夷”**的口号，通过“九合诸侯，一匡天下”，在葵丘会盟中确立了霸主地位。",
               "images": [],
-              "tags": ["霸主", "管仲"],
+              "tags": ["春秋五霸", "管仲", "尊王攘夷"],
               "children": [
                 {
                   "id": "idiom-laomashitu",
@@ -138,12 +130,29 @@ export const INITIAL_DATA: TimelineData = {
               ]
             },
             {
+              "id": "idiom-yiguzuoqi",
+              "date": "-000684-01-01",
+              "title": "一鼓作气",
+              "content": "长勺之战（齐鲁之战），曹刿论战：夫战，勇气也。一鼓作气，再而衰，三而竭。",
+              "images": [],
+              "tags": ["成语", "鲁国"]
+            },
+            {
+              "id": "chunqiu-song",
+              "date": "-000638-11-01",
+              "title": "宋襄公仁义之师",
+              "content": "### 泓水之战\n\n宋襄公意图称霸，与楚军战于泓水。他死守“仁义”，坚持“不击半渡”，等到楚军全部渡河列阵完毕才开战，结果大败，身受重伤而死。被后世嘲笑为“蠢猪式的仁义”。",
+              "images": [],
+              "tags": ["春秋五霸", "宋襄公", "仁义"],
+              "children": []
+            },
+            {
               "id": "chunqiu-jin",
               "date": "-000632-01-01",
               "title": "晋文公称霸",
-              "content": "城濮之战，晋国击败楚国。",
+              "content": "### 城濮之战\n\n晋文公（重耳）流亡十九年后归国。在城濮之战中，兑现当年“退避三舍”的诺言，诱敌深入，大败楚军，确立了中原霸主地位。",
               "images": [],
-              "tags": ["霸主"],
+              "tags": ["春秋五霸", "霸主"],
               "children": [
                 {
                   "id": "idiom-tuibisanshe",
@@ -156,20 +165,39 @@ export const INITIAL_DATA: TimelineData = {
               ]
             },
             {
-              "id": "idiom-yimingjingsren",
-              "date": "-000613-01-01",
-              "title": "一鸣惊人",
-              "content": "楚庄王莅政三年，不飞不鸣，一飞冲天，一鸣惊人。",
+              "id": "chunqiu-qin",
+              "date": "-000623-01-01",
+              "title": "秦穆公称霸西戎",
+              "content": "### 东进受阻，西向发展\n\n秦穆公在殽之战败给晋国后，调整战略，向西发展。任用**百里奚**、**蹇叔**、**由余**等贤臣，“益国十二，开地千里，遂霸西戎”。这为后来秦国统一六国奠定了坚实的大后方。",
               "images": [],
-              "tags": ["成语", "楚庄王"]
+              "tags": ["春秋五霸", "秦穆公", "百里奚"],
+              "children": []
+            },
+            {
+              "id": "chunqiu-chu",
+              "date": "-000606-01-01",
+              "title": "楚庄王问鼎中原",
+              "content": "### 问鼎之轻重\n\n楚庄王北伐陆浑之戎，陈兵周室边境洛水。周天子派王孙满慰劳，楚庄王公然询问“九鼎之大小轻重”，流露出夺取天下的野心。\n\n此前他“三年不鸣，一鸣惊人”，励精图治，最终饮马黄河，成为春秋霸主。",
+              "images": [],
+              "tags": ["春秋五霸", "楚庄王", "问鼎"],
+              "children": [
+                 {
+                  "id": "idiom-yimingjingsren",
+                  "date": "-000613-01-01",
+                  "title": "一鸣惊人",
+                  "content": "楚庄王莅政三年，不飞不鸣，一飞冲天，一鸣惊人。",
+                  "images": [],
+                  "tags": ["成语", "楚庄王"]
+                }
+              ]
             },
             {
               "id": "chunqiu-yue",
               "date": "-000473-01-01",
               "title": "越王勾践灭吴",
-              "content": "春秋最后一位霸主。",
+              "content": "春秋时期最后一位霸主。",
               "images": [],
-              "tags": ["复仇"],
+              "tags": ["复仇", "春秋五霸"],
               "children": [
                 {
                    "id": "idiom-woxinchangdan",

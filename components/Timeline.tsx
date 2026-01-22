@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { TimelineEvent } from '../types';
 import { Edit2, Tag, Trash2, ChevronDown, ChevronRight, Plus, Circle, ExternalLink } from 'lucide-react';
@@ -7,11 +7,42 @@ interface TimelineProps {
   events: TimelineEvent[];
   onEdit: (event: TimelineEvent) => void;
   onDelete: (id: string) => void;
-  onInsertRequest: (date: string) => void;
+  onInsertRequest: (date: string, parentId?: string | null) => void;
   onAddChild: (parentId: string) => void;
   expandedIds: Set<string>;
   onToggleExpand: (id: string) => void;
+  parentId?: string | null;
 }
+
+// Helper: Convert date string to absolute month count for linear interpolation
+const dateToMonths = (dateStr: string): number => {
+  try {
+    const isBC = dateStr.startsWith('-');
+    const cleanDate = dateStr.replace(/^-/, '');
+    const parts = cleanDate.split('-').map(Number);
+    const y = parts[0];
+    const m = parts[1] || 1;
+    // Simple linear scale: (Year * 12) + Month. 
+    // BC years are negative.
+    return (isBC ? -y : y) * 12 + (m - 1);
+  } catch (e) {
+    return 0;
+  }
+};
+
+const monthsToDate = (totalMonths: number): string => {
+  const isBC = totalMonths < 0;
+  const abs = Math.abs(totalMonths);
+  const y = Math.floor(abs / 12);
+  const m = (abs % 12) + 1;
+  const d = 15; // default day
+  
+  const yStr = Math.max(1, y).toString().padStart(isBC ? 6 : 4, '0');
+  const mStr = m.toString().padStart(2, '0');
+  const dStr = d.toString().padStart(2, '0');
+  
+  return `${isBC ? '-' : ''}${yStr}-${mStr}-${dStr}`;
+};
 
 // Helper to format date
 const formatDate = (dateString: string) => {
@@ -36,6 +67,7 @@ const formatDate = (dateString: string) => {
 
 interface TimelineNodeProps {
   event: TimelineEvent;
+  nextEvent: TimelineEvent | undefined; // Passed to calculate gap
   level: number;
   isLast: boolean;
   expandedIds: Set<string>;
@@ -43,19 +75,26 @@ interface TimelineNodeProps {
   onEdit: (event: TimelineEvent) => void;
   onDelete: (id: string) => void;
   onAddChild: (id: string) => void;
+  onInsertRequest: (date: string, parentId?: string | null) => void;
+  parentId: string | null;
 }
 
 const TimelineNode: React.FC<TimelineNodeProps> = ({ 
   event, 
+  nextEvent,
   level, 
   isLast,
   expandedIds, 
   toggleExpand, 
   onEdit, 
   onDelete, 
-  onAddChild 
+  onAddChild,
+  onInsertRequest,
+  parentId
 }) => {
-  
+  const spineRef = useRef<HTMLDivElement>(null);
+  const [hoverDate, setHoverDate] = useState<{ date: string, top: number } | null>(null);
+
   const hasChildren = event.children && event.children.length > 0;
   const isExpanded = expandedIds.has(event.id);
   const isRoot = level === 0;
@@ -65,6 +104,44 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
     ? [...(event.children || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) 
     : [];
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!spineRef.current || !nextEvent) return;
+    
+    const rect = spineRef.current.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const height = rect.height;
+    
+    // Calculate percentage down the line (0 to 1)
+    const percentage = Math.max(0, Math.min(1, offsetY / height));
+    
+    const startMonths = dateToMonths(event.date);
+    const endMonths = dateToMonths(nextEvent.date);
+    
+    // Interpolate months
+    const targetMonths = Math.floor(startMonths + (endMonths - startMonths) * percentage);
+    
+    setHoverDate({
+      date: monthsToDate(targetMonths),
+      top: offsetY
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setHoverDate(null);
+  };
+
+  const handleSpineClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hoverDate) {
+      onInsertRequest(hoverDate.date, parentId);
+    }
+  };
+
+  // Determine top offset for spine to avoid marker overlap
+  // Root marker is roughly 40px (h-10), Child is 16px (h-4)
+  // We start the interactive spine a bit below the center of the marker
+  const spineTopClass = isRoot ? 'top-10' : 'top-6';
+
   return (
     <div className="relative group">
       <div className="flex gap-3 md:gap-4">
@@ -72,21 +149,55 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         {/* LEFT COLUMN: Marker & Line Spine */}
         <div className={`flex flex-col items-center relative flex-shrink-0 ${isRoot ? 'w-8 md:w-10' : 'w-6'}`}>
            
-           {/* Vertical Line Spine */}
-           {/* Note: Removed negative z-index to ensure visibility. Placed before marker in DOM. */}
+           {/* Visual Spine (Background Line) */}
            <div 
              className={`
                absolute top-0 bottom-0 left-1/2 -translate-x-1/2
-               ${isRoot ? 'w-1 bg-blue-400/50' : 'w-px border-l-2 border-dashed border-blue-300'}
+               ${isRoot ? 'w-1 bg-blue-100' : 'w-px border-l-2 border-dashed border-blue-200'}
                ${isLast ? 'h-6' : ''} 
                transition-colors duration-300
              `}
            ></div>
 
+           {/* --- INTERACTIVE SPINE LAYER --- */}
+           {!isLast && nextEvent && (
+              <div 
+                ref={spineRef}
+                className={`absolute left-1/2 -translate-x-1/2 bottom-0 w-8 md:w-10 z-10 cursor-crosshair group/spine ${spineTopClass}`}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                onClick={handleSpineClick}
+                title="点击此处插入事件"
+              >
+                 {/* Visual Feedback on Hover (The highlighted line segment) */}
+                 <div className="absolute left-1/2 -translate-x-1/2 w-0.5 bg-primary/50 h-full opacity-0 group-hover/spine:opacity-100 transition-opacity pointer-events-none rounded-full"></div>
+
+                 {/* Hover Ghost Dot */}
+                 {hoverDate && (
+                    <div 
+                        className="absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full border-2 border-white shadow-sm pointer-events-none z-20"
+                        style={{ top: hoverDate.top - 6 }} // Center vertically on cursor
+                    />
+                 )}
+                 
+                 {/* Tooltip */}
+                 {hoverDate && (
+                    <div 
+                        className="absolute left-full ml-3 px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg whitespace-nowrap pointer-events-none z-50 animate-in fade-in zoom-in duration-100 origin-left"
+                        style={{ top: hoverDate.top - 12 }}
+                    >
+                        <div className="font-bold text-amber-300 mb-0.5">+ 插入新事件</div>
+                        <div className="opacity-90">{formatDate(hoverDate.date)}</div>
+                        <div className="absolute top-1/2 right-full -mt-1 -mr-1 border-4 border-transparent border-r-slate-800"></div>
+                    </div>
+                 )}
+              </div>
+           )}
+
            {/* MARKER */}
            <div 
              className={`
-               relative z-10 flex items-center justify-center rounded-full transition-all cursor-pointer box-border
+               relative z-20 flex items-center justify-center rounded-full transition-all cursor-pointer box-border
                ${isRoot 
                  ? 'w-8 h-8 md:w-10 md:h-10 bg-primary text-white shadow-md border-4 border-white mt-1 ring-2 ring-blue-100' 
                  : 'w-4 h-4 bg-white border-2 border-blue-400 mt-2 hover:border-primary hover:scale-125'}
@@ -111,6 +222,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
                   : null
              )}
            </div>
+
         </div>
 
         {/* RIGHT COLUMN: Content */}
@@ -224,7 +336,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               {sortedChildren.map((child, idx) => (
                 <TimelineNode 
                   key={child.id} 
-                  event={child} 
+                  event={child}
+                  nextEvent={sortedChildren[idx + 1]} // Pass next sibling
                   level={level + 1} 
                   isLast={idx === sortedChildren.length - 1}
                   expandedIds={expandedIds}
@@ -232,6 +345,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onAddChild={onAddChild}
+                  onInsertRequest={onInsertRequest}
+                  parentId={event.id} // Pass current ID as parent for children
                 />
               ))}
             </div>
@@ -249,7 +364,8 @@ const Timeline: React.FC<TimelineProps> = ({
   onInsertRequest, 
   onAddChild,
   expandedIds,
-  onToggleExpand
+  onToggleExpand,
+  parentId = null
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -259,7 +375,8 @@ const Timeline: React.FC<TimelineProps> = ({
   );
 
   const handleGlobalAdd = () => {
-    onInsertRequest(new Date().toISOString().split('T')[0]);
+    // Default to current date if global add
+    onInsertRequest(new Date().toISOString().split('T')[0], null);
   };
 
   if (sortedEvents.length === 0) {
@@ -274,12 +391,16 @@ const Timeline: React.FC<TimelineProps> = ({
   return (
     <div ref={containerRef} className="max-w-4xl mx-auto px-4 py-8 relative">
       
-      {/* Global Line for Root (Optional visual guide, but relying on per-node lines is safer for recursion) */}
-      
       {/* Global Add Button Area at Top */}
       <div 
         className="group flex items-center gap-4 mb-2 cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
-        onClick={handleGlobalAdd}
+        onClick={() => {
+           // Insert before first event, approximately 50 years prior? Or just today.
+           // Let's use first event - 1 year
+           const firstDate = sortedEvents[0]?.date;
+           // Simple calc for demo
+           onInsertRequest(firstDate, parentId);
+        }}
       >
          <div className="w-8 md:w-10 flex justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-dashed border-blue-300 flex items-center justify-center text-blue-400 group-hover:border-primary group-hover:text-primary transition-colors bg-white">
@@ -296,6 +417,7 @@ const Timeline: React.FC<TimelineProps> = ({
           <TimelineNode 
             key={event.id}
             event={event}
+            nextEvent={sortedEvents[index + 1]} // Pass next sibling
             level={0}
             isLast={index === sortedEvents.length - 1}
             expandedIds={expandedIds}
@@ -303,6 +425,8 @@ const Timeline: React.FC<TimelineProps> = ({
             onEdit={onEdit}
             onDelete={onDelete}
             onAddChild={onAddChild}
+            onInsertRequest={onInsertRequest}
+            parentId={parentId} // Root has no parent (or whatever is passed)
           />
         ))}
       </div>

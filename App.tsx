@@ -161,35 +161,6 @@ const App: React.FC = () => {
         } 
         
         // Case B: Parent Changed -> Move (Delete then Insert)
-        // Note: We need to preserve the *children* of the event being moved if any
-        // However, 'event' coming from modal doesn't have children populated usually.
-        // But updateEventDataRecursive preserves them.
-        // For a move, we need to extract the current children first? 
-        // For simplicity in this version, we assume moving keeps children if we fetch the object first.
-        // Wait, the 'event' object from modal has empty children usually.
-        // We should actually find the real object in tree to get its children, 
-        // OR, just assume we move it. 'deleteEventRecursive' removes it.
-        // To do this safely:
-        // 1. Find the current full object to keep its children (if not passed in modal)
-        // Since modal logic passes 'images', 'content' etc, but 'children' might be undefined in modal state.
-        // Let's rely on the fact that we should just update data + move location.
-        // Steps: 
-        // 1. Remove from old tree.
-        // 2. Insert 'event' into new parent. 
-        // *Critically*: We need to make sure we don't lose the *children* of the event being moved.
-        // The modal doesn't manage children array. So `event.children` might be undefined.
-        
-        // Let's implement a 'findAndRemove' that returns the removed object including its children.
-        // But for now, let's just find the existing node to get its children.
-        // Actually, we can just do a specialized "move" operation, but let's stick to delete+insert for simplicity,
-        // ensuring we copy children from the old state.
-        
-        // 1. Find current state of children
-        // We can't easily find it without traversal. 
-        // Let's modify deleteEventRecursive to NOT return the deleted object easily.
-        // Let's assume for this feature (Add Event context mostly), we don't strictly need to support complex tree moving with children preservation 
-        // UNLESS the user explicitly edits.
-        // Let's try to preserve children:
         let preservedChildren: TimelineEvent[] = [];
         const findChildren = (nodes: TimelineEvent[]) => {
            for(const n of nodes) {
@@ -245,10 +216,11 @@ const App: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleInsertRequest = (date: string) => {
+  // Updated to support parentId
+  const handleInsertRequest = (date: string, parentId?: string | null) => {
     setEditingEvent(null);
     setCreateDate(date);
-    setTargetParentId(null); // Root level insert by default
+    setTargetParentId(parentId || null); 
     setIsModalOpen(true);
   }
 

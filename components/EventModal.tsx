@@ -1,19 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, Save, Eye, Edit3, Calendar, Link as LinkIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Image as ImageIcon, Save, Eye, Edit3, Calendar, Link as LinkIcon, Search, Check, ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import ReactMarkdown from 'react-markdown';
 import { TimelineEvent, EventFormData } from '../types';
 import { fileToBase64, generateId } from '../utils/fileHelpers';
 
+interface SimpleEvent {
+  id: string;
+  title: string;
+}
+
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (event: TimelineEvent) => void;
+  onSave: (event: TimelineEvent, parentId: string | null) => void;
   initialData: TimelineEvent | null;
   defaultDate?: string | null;
+  availableParents: SimpleEvent[]; // Flattened list for search
+  initialParentId?: string | null;
 }
 
-const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initialData, defaultDate }) => {
+const EventModal: React.FC<EventModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  initialData, 
+  defaultDate,
+  availableParents,
+  initialParentId
+}) => {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   
@@ -22,6 +37,12 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
   const [day, setDay] = useState<number>(new Date().getDate());
   const [isBC, setIsBC] = useState<boolean>(false);
+
+  // Parent Selection State
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<EventFormData>();
   const descriptionValue = watch('content');
@@ -57,6 +78,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
         setValue('tags', initialData.tags.join(', '));
         setValue('link', initialData.link || '');
         setImages(initialData.images);
+        setSelectedParentId(initialParentId || null);
       } else {
         // Create Mode
         if (defaultDate) {
@@ -76,10 +98,24 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
           link: ''
         });
         setImages([]);
+        setSelectedParentId(initialParentId || null);
       }
       setIsPreviewMode(false);
+      setIsSearchOpen(false);
+      setSearchTerm('');
     }
-  }, [isOpen, initialData, defaultDate, reset, setValue]);
+  }, [isOpen, initialData, defaultDate, initialParentId, reset, setValue]);
+
+  // Handle outside click for search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -99,8 +135,6 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
   };
 
   const onSubmit = (data: EventFormData) => {
-    // Construct Date String manually
-    // Format: -002000-01-01 for BC, 2000-01-01 for AD
     const yStr = Math.abs(year).toString().padStart(isBC ? 6 : 4, '0');
     const mStr = Math.min(Math.max(month, 1), 12).toString().padStart(2, '0');
     const dStr = Math.min(Math.max(day, 1), 31).toString().padStart(2, '0');
@@ -116,9 +150,19 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
       tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(t => t.length > 0) : [],
       link: data.link
     };
-    onSave(newEvent);
+    // Pass both the event and the selected parent ID
+    onSave(newEvent, selectedParentId);
     onClose();
   };
+
+  // Filter parents for search
+  const filteredParents = availableParents.filter(p => {
+    // Exclude self and ensure title matches search
+    if (initialData && p.id === initialData.id) return false;
+    return p.title.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  const selectedParentName = availableParents.find(p => p.id === selectedParentId)?.title || '（无 - 设为顶级事件）';
 
   if (!isOpen) return null;
 
@@ -141,14 +185,91 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
           <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Date Input (Custom Composite) */}
+              
+              {/* Parent Selector (Full Width) */}
+              <div className="md:col-span-2 relative" ref={searchContainerRef}>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  父级事件 (可选)
+                </label>
+                <div 
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg flex items-center justify-between cursor-pointer hover:border-primary transition-colors bg-white"
+                  onClick={() => setIsSearchOpen(!isSearchOpen)}
+                >
+                  <span className={`text-sm truncate ${selectedParentId ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
+                    {selectedParentId ? selectedParentName : '选择所属父事件（默认作为根事件）'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                     {selectedParentId && (
+                       <button
+                         type="button"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setSelectedParentId(null);
+                         }}
+                         className="p-1 text-slate-400 hover:text-red-500 rounded-full"
+                       >
+                         <X size={14} />
+                       </button>
+                     )}
+                     <ChevronDown size={16} className="text-slate-400" />
+                  </div>
+                </div>
+
+                {/* Search Dropdown */}
+                {isSearchOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                    <div className="p-2 sticky top-0 bg-white border-b border-slate-100">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <input 
+                          type="text" 
+                          className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-primary"
+                          placeholder="搜索已有事件..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <div className="py-1">
+                      <div 
+                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-slate-50 flex items-center justify-between ${!selectedParentId ? 'text-primary bg-blue-50' : 'text-slate-600'}`}
+                        onClick={() => {
+                          setSelectedParentId(null);
+                          setIsSearchOpen(false);
+                        }}
+                      >
+                         <span>（无 - 设为顶级事件）</span>
+                         {!selectedParentId && <Check size={14} />}
+                      </div>
+                      {filteredParents.length === 0 && (
+                        <div className="px-3 py-2 text-sm text-slate-400 text-center">未找到相关事件</div>
+                      )}
+                      {filteredParents.map(parent => (
+                        <div 
+                          key={parent.id}
+                          className={`px-3 py-2 text-sm cursor-pointer hover:bg-slate-50 flex items-center justify-between ${selectedParentId === parent.id ? 'text-primary bg-blue-50' : 'text-slate-600'}`}
+                          onClick={() => {
+                            setSelectedParentId(parent.id);
+                            setIsSearchOpen(false);
+                          }}
+                        >
+                          <span className="truncate">{parent.title}</span>
+                          {selectedParentId === parent.id && <Check size={14} />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Date Input */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   发生时间
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Era Toggle */}
                   <div className="relative">
                     <select
                       value={isBC ? 'BC' : 'AD'}
@@ -164,8 +285,6 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
                       <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                     </div>
                   </div>
-
-                  {/* Year */}
                   <div className="flex items-center">
                     <input
                       type="number"
@@ -177,8 +296,6 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
                     />
                     <span className="bg-slate-100 border-y border-r border-slate-300 px-2 py-2 text-slate-500 rounded-r-lg text-sm">年</span>
                   </div>
-
-                  {/* Month */}
                   <div className="flex items-center">
                     <input
                       type="number"
@@ -190,8 +307,6 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave, initia
                     />
                     <span className="bg-slate-100 border-y border-r border-slate-300 px-2 py-2 text-slate-500 rounded-r-lg text-sm">月</span>
                   </div>
-
-                  {/* Day */}
                   <div className="flex items-center">
                     <input
                       type="number"
